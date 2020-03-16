@@ -1,0 +1,191 @@
+		     +--------------------------+
+       	       	     |		CS 140		|
+		     | PROJECT 2: USER PROGRAMS	|
+		     | 	   DESIGN DOCUMENT     	|
+		     +--------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+FirstName LastName <email@domain.example>
+FirstName LastName <email@domain.example>
+FirstName LastName <email@domain.example>
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+- https://www.google.com/search?client=ubuntu&channel=fs&q=how+to+access+user+memory+from+the+kernel&ie=utf-8&oe=utf-8
+- https://www.usna.edu/Users/cs/aviv/classes/ic221/s16/lec/21/lec.html
+
+
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+yet to be implemented.
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  
+
+We need to break the command into Filename and arguments. We can use the strtok_r() function to split the string. Then we put the arguments in the stack in reverse order.
+
+>>How do you arrange for the elements of argv[] to be in the right order?
+
+We are pushing the arguments to the stack in reverse order so when we are traversing the stack we are getting the arguments in the right order. 
+
+>> How do you avoid overflowing the stack page?
+
+ESP is the stack pointer in Pintos (which is type of void **). We set a counter to zero and everytime we add an argument we increase the counter and if the counter exits the page size we stop.
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+strtok_r() is a re-entrant version of strtok. There is an extra argument in strtok_r() which takes the position of the next token and it maintains the
+context between continuous calls. So strtok_r() is synchronous and thread-safe.
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+a. If shell does the separation and checking of executable filename and parameters it happens in the user space and even if there's an unknown error - it won't cause a kernel panic.
+b. If we separate the commands into executable name and arguments in user space - we reduce execution time in kernel mode. 
+c. If the command is too long and segmentation process needs a lot of memory the program will crash in shell only. 
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+yet to be implemented.
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+File descriptor numbers are unique withing a single process, as each entry in the process table contains records on all opens of a "file" withing the process. These records are also used to reference the global open file table, which contrains records for all opened files within the system. each "open" creates a new record which keeps track of status flags, current offset and references file's inode. 
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+We use our own implementations of copy_from_user, copy_to_user functions that
+handle interactions with user memory. They access user-space pages unsing the 
+pagedir_get_page () function from pagedir.c.
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+not yet implemented
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+We implement a global hashmap to keep TIDs of processes that are waited-for.
+When a process exits or is being terminated, process_exit function is called
+and it looks up it's TID in the hash-table to see if it needs to wake any 
+waiting processes.
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+First of all - we use abstractions of copy_to_user and copy_from_user functions
+to perform access to user memory. These functions implement all validity checks
+and certain errors.
+To free up resources, we extend our code from previous assignment that kept 
+a list of all locks held by a thread to also keep a list of other resources 
+held by the process.
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+not yet implemented
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+not yet implemented
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+We implemented our own version of copy_to_user and copy_from_user functions
+to be able to handle swapped out pages and illegal memory accesses.
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+not implemeted yet
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+not changed yet
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?
